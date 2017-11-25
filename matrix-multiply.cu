@@ -7,31 +7,51 @@
 
 #include <stdio.h>
 #include <cuda.h>
+#include <iostream>
 
-#define checkCuda(ret)  checkCuda_func( (cudaError_t)(ret), __FILE__, __LINE__)
+#define checkCuda(ret)  checkCuda_func( (cudaError_t)(ret), __FILE__, __LINE__ )
 
 inline cudaError_t checkCuda_func(cudaError_t ret, const char * file, const int line);
 
-float * init_matrix(int n_rows, int n_cols, float defualt_val)
+int pid = 0;
+
+float * init_matrix(int n_rows, int n_cols, float default_val)
 {
     float *p;
     int n_elems = n_rows*n_cols;
 
-    p = malloc(n_elems*sizeof(float));
-    for(int i; i < n_elems: i ++)
-        p[i] = default_val;
+    p = (float*)malloc(n_elems*sizeof(float));
+    for(int i=0; i < n_elems; i ++) 
+       p[i] = default_val;
 
     return p;
 }
 
 
-__global__ void matrix_mul_kernel(float* d_mA, float* d_mB, float *d_mP, int n_rows, int n_cols)
+__global__ void matrix_add_kernel(float* d_mA, float* d_mB, float *d_mP, int n_rows, int n_cols)
 {
-    int tx = threadIdx.x;
-    int ty = threadIdx.y;
+    int tx = blockIdx.x * blockDim.x + threadIdx.x;	
+    int ty = blockIdx.y * blockDim.y + threadIdx.y;	
 
     float p_val = 0.0;
 
+    int idx = tx*n_rows + ty; 
+    d_mP[idx] = d_mA[idx] + d_mB[idx];
+//    for(int k=0; k < n_rows; k++) {
+//        p_val += d_mA[k*n_cols+tx] * d_mB[ty*n_cols+k];
+//    }
+//
+//    d_mP[tx*n_rows+ty] = p_val;
+}
+
+__global__ void matrix_mul_kernel(float* d_mA, float* d_mB, float *d_mP, int n_rows, int n_cols)
+{
+    int tx = blockIdx.x * blockDim.x + threadIdx.x;	
+    int ty = blockIdx.y * blockDim.y + threadIdx.y;	
+
+    float p_val = 0.0;
+
+    int idx = tx*n_rows + ty; 
     for(int k=0; k < n_rows; k++) {
         p_val += d_mA[k*n_cols+tx] * d_mB[ty*n_cols+k];
     }
@@ -39,12 +59,12 @@ __global__ void matrix_mul_kernel(float* d_mA, float* d_mB, float *d_mP, int n_r
     d_mP[tx*n_rows+ty] = p_val;
 }
 
-void matrix_mul_on_device(float *mA, float *mB, float *mP, int n_rows, n_cols)
+void matrix_mul_on_device(float *mA, float *mB, float *mP, int n_rows, int n_cols)
 {
     int n_elems = n_rows*n_cols;
     int size = n_elems*sizeof(float);
 
-    float *d_mA, float *d_mB, float *d_mP;
+    float *d_mA, *d_mB, *d_mP;
 
     checkCuda( cudaMalloc(&d_mA, size) );
     checkCuda( cudaMalloc(&d_mB, size) );
@@ -52,8 +72,9 @@ void matrix_mul_on_device(float *mA, float *mB, float *mP, int n_rows, n_cols)
     checkCuda( cudaMemcpy(d_mA, mA, size, cudaMemcpyHostToDevice) );
     checkCuda( cudaMemcpy(d_mB, mB, size, cudaMemcpyHostToDevice) );
     
-    dim3 dimBlock(n_rows, n_cols);
-    dim3 dimGrid(1,1);
+    int block_size=32;
+    dim3 dimBlock(block_size, block_size);
+    dim3 dimGrid(n_rows/block_size, n_cols/block_size);
     matrix_mul_kernel<<<dimGrid, dimBlock>>>(d_mA, d_mB, d_mP, n_rows, n_cols);
 
 
@@ -64,21 +85,27 @@ void matrix_mul_on_device(float *mA, float *mB, float *mP, int n_rows, n_cols)
     
 }
 
+void display_array(float *p, int n)
+{
+    int n_display = 1024;
+    std::cout << "first 100 results: [ ";
+    for(int i=0; i < n_display; i++)
+       std::cout << p[i] << " ";
+    std::cout << " ] " << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
-    int n_rows=1000, n_cols=1000;
+    int n_rows=1024, n_cols=1024;
 
-    float *mA = init_matrix(n_rows, n_cols, 1.0);
-    float *mB = init_matrix(n_rows, n_cols, 2.0);
+    float *mA = init_matrix(n_rows, n_cols, 2.0);
+    float *mB = init_matrix(n_rows, n_cols, 3.0);
     float *mP = init_matrix(n_rows, n_cols, 0.0);
 
     matrix_mul_on_device(mA, mB, mP, n_rows, n_cols);
-   
-    int n_display = 100;
-    std::cout << "first 100 results: [ ";
-    for(int i=0; i < n_display; i++)
-       std::cout << mP[i] << " ";
-    std::cout << " ] " << std::endl;
+	display_array(mA, 100);
+	display_array(mB, 100);
+	display_array(mP, 100);
 
     free(mA);
     free(mB);
