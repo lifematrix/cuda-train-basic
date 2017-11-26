@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <iostream>
-#include "algutils.h"
 
-inline cudaError_t checkCuda_func(cudaError_t ret, const char * file, const int line);
+#define checkCuda(ret)  checkCuda_func( (cudaError_t)(ret), __FILE__, __LINE__ )
+
 
 int pid = 0;
 
@@ -26,6 +26,14 @@ float * init_matrix(int n_rows, int n_cols, float default_val)
     return p;
 }
 
+float * init_array(int n_len, float default_val)
+{
+    p = (float*)malloc(n_len*sizeof(float));
+    for(int i=0; i < n_len; i ++)
+        p[i] = default_val;
+
+    return p;
+}
 
 __global__ void matrix_add_kernel(float* d_mA, float* d_mB, float *d_mP, int n_rows, int n_cols)
 {
@@ -77,20 +85,24 @@ void matrix_mul_on_device(float *mA, float *mB, float *mP, int n_rows, int n_col
     
 }
 
-void display_array(float *p, int n)
+void reduction_min_max(float *mR, float *mA, int n_len)
 {
-    int n_display = 1024;
-    std::cout << "first 100 results: [ ";
-    for(int i=0; i < n_display; i++)
-       std::cout << p[i] << " ";
-    std::cout << " ] " << std::endl;
+    for(int i=0; i<n_len; i++)
+        for(int j=0; j<n_len; j++) {
+            mA[i*n_len+j] = mR[i] * mR[j];
+        }
+
 }
+
 
 int main(int argc, char *argv[])
 {
-    int n_rows=1024, n_cols=1024;
+    int n_len=8192;
 
-    float *mA = init_matrix(n_rows, n_cols, 2.0);
+    float *R = init_array(n_len, 1.0);
+    float *mA = init_matrix(n_len, n_len, 0.0);
+
+
     float *mB = init_matrix(n_rows, n_cols, 3.0);
     float *mP = init_matrix(n_rows, n_cols, 0.0);
 
@@ -105,14 +117,3 @@ int main(int argc, char *argv[])
 }
 
 
-inline cudaError_t checkCuda_func(cudaError_t ret, const char * file, const int line)
-{
-    if(ret != cudaSuccess) {
-        printf("cuda operation returned: %s (code %d), in file: %s(%d), the program (pid: %d) exit.\n",
-                cudaGetErrorString(ret), ret, file, line, pid);
-        fflush(stdout);
-        exit(-1);
-    }
-
-    return ret;
-}
