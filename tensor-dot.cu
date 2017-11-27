@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <stdarg.h>
+#include <math.h>
 
 #include <iostream>
 #include <vector>
@@ -226,12 +227,14 @@ int main(int argc, char *argv[])
     // t2 is correct answer in theroy.
     t2 = init_val_A*init_val_B*shapeA[1]*shapeA[2]*get_shape_size(shapeC);
 
+    // to compare two double number equal:  |t1 - t2| < 1e-15
+    // 1e-15 is too small number, near zero.
 	log_info("sum of TC_cu: %f, correct answer: %f, equal: %s",
-		t1, t2, t1==t2?"TRUE":"FLASE");
+		t1, t2, fabs(t1-t2)<1e-15?"TRUE":"FLASE");
 
     t1 = sum_array(TC_cpu, get_shape_size(shapeC));
 	log_info("sum of TC_cpu: %f, correct answer: %f, equal: %s",
-             t1, t2, t1== t2?"TRUE":"FLASE");
+        t1, t2, fabs(t1-t2)<1e-15?"TRUE":"FLASE");
 
 	// display first n elements for check.
 	display_array(TA, 100);
