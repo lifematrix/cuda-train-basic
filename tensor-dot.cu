@@ -128,7 +128,7 @@ void tensor3D_dot_cu(float *TA, Shape shapeA, float *TB,
     checkCuda( cudaMemcpy(d_TB, TB, get_shape_size(shapeB)*sizeof(float),
                           cudaMemcpyHostToDevice) );
 
-    dim3 dimBlock(16, 16);
+    dim3 dimBlock(32, 32);
 	// It is a algorithm trick. For get ceiling(M/N), you can caclulate: (M-1)/N + 1
 	// Ref: <https://stackoverflow.com/questions/2745074/fast-ceiling-of-an-integer-division-in-c-c>
     dim3 dimGrid((shapeC[0]-1)/dimBlock.x+1, (shapeC[1]-1)/dimBlock.y+1);
@@ -203,8 +203,8 @@ int main(int argc, char *argv[])
 	time_start = clock();
     log_info("program start");
 
-    Shape shapeA = {64,32,128};
-    Shape shapeB = {32,128,16};
+    Shape shapeA = {1024,32,128};
+    Shape shapeB = {32,128,1024};
     Shape shapeC = {shapeA[0], shapeB[2]}; 
 
 	log_info("initialize tensor");
