@@ -217,13 +217,17 @@ int main(int argc, char *argv[])
 	log_info("tensor3D_dot_cpu OK");
 
 	// Check correctness of calculation.
-	log_info("sum of TC_cu: %f, correct answer: %f", 
-		sum_array(TC_cu, get_shape_size(shapeC)),
-		init_val_A*init_val_B*shapeA[1]*shapeA[2]*get_shape_size(shapeC));
+    double t1, t2;
+    t1 = sum_array(TC_cu, get_shape_size(shapeC));
+    // t2 is correct answer in theroy.
+    t2 = init_val_A*init_val_B*shapeA[1]*shapeA[2]*get_shape_size(shapeC);
 
-	log_info("sum of TC_cpu: %f, correct answer: %f", 
-		sum_array(TC_cpu, get_shape_size(shapeC)),
-		init_val_A*init_val_B*shapeA[1]*shapeA[2]*get_shape_size(shapeC));
+	log_info("sum of TC_cu: %f, correct answer: %f, equal: %s",
+		t1, t2, t1 == t1?"true":"false");
+
+    t1 = sum_array(TC_cpu, get_shape_size(shapeC));
+	log_info("sum of TC_cpu: %f, correct answer: %f",
+             t1, t2, t1 == t1?"true":"false");
 
 	// display first n elements for check.
 	display_array(TA, 100);
