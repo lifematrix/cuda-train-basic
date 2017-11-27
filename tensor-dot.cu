@@ -176,6 +176,10 @@ void display_array(float *p, size_t n, size_t offset=0)
     std::cout << " ] " << std::endl;
 }
 
+/*
+ * get sum of all elements of an array.
+ * return double precision to prevent overflow.
+ */
 double sum_array(float *p, size_t n)
 {
 	double s = 0.0;
@@ -223,11 +227,11 @@ int main(int argc, char *argv[])
     t2 = init_val_A*init_val_B*shapeA[1]*shapeA[2]*get_shape_size(shapeC);
 
 	log_info("sum of TC_cu: %f, correct answer: %f, equal: %s",
-		t1, t2, t1 == t1?"true":"false");
+		t1, t2, t1 == t2?"TRUE":"FLASE");
 
     t1 = sum_array(TC_cpu, get_shape_size(shapeC));
-	log_info("sum of TC_cpu: %f, correct answer: %f",
-             t1, t2, t1 == t1?"true":"false");
+	log_info("sum of TC_cpu: %f, correct answer: %f, equal: %s",
+             t1, t2, t1r== t2?"TRUE":"FLASE");
 
 	// display first n elements for check.
 	display_array(TA, 100);
